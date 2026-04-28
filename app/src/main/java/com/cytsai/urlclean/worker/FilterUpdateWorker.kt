@@ -58,9 +58,9 @@ class FilterUpdateWorker(
                     if (e is IOException) Result.retry() else Result.failure()
                 },
             )
-        } catch (e: IOException) {
+        } catch (_: IOException) {
             Result.retry()
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             Result.failure()
         }
     }

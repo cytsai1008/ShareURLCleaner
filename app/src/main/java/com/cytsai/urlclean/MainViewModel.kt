@@ -1,5 +1,6 @@
 package com.cytsai.urlclean
 
+import android.annotation.SuppressLint
 import android.app.Application
 import android.widget.Toast
 import androidx.lifecycle.AndroidViewModel
@@ -9,13 +10,13 @@ import androidx.lifecycle.viewModelScope
 import com.cytsai.urlclean.data.FilterRepository
 import com.cytsai.urlclean.data.SettingsDataStore
 import com.cytsai.urlclean.worker.FilterUpdateWorker
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.IOException
@@ -75,6 +76,7 @@ class MainViewModel(
         }
     }
 
+    @SuppressLint("StringFormatInvalid")
     fun triggerManualUpdate() {
         if (_updateStatus.value.first) return
         viewModelScope.launch {
@@ -87,12 +89,9 @@ class MainViewModel(
                     dataStore.setRuleCount(count)
                     _updateStatus.update { Pair(false, null) }
                     val app = getApplication<Application>()
+                    val msg = app.getString(R.string.toast_update_success, count)
                     withContext(Dispatchers.Main) {
-                        Toast.makeText(
-                            app,
-                            app.getString(R.string.toast_update_success, count),
-                            Toast.LENGTH_SHORT,
-                        ).show()
+                        Toast.makeText(app, msg, Toast.LENGTH_SHORT).show()
                     }
                 },
                 onFailure = { e ->
