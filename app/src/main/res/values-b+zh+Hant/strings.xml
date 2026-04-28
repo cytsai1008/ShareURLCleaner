@@ -1,0 +1,16 @@
+<resources>
+    <string name="app_name">分享連結清理</string>
+    <string name="title_settings">連結清理</string>
+    <string name="label_filter_url">過濾規則 URL</string>
+    <string name="cd_save_url">儲存 URL</string>
+    <string name="btn_update_now">立即更新</string>
+    <string name="btn_updating">更新中…</string>
+    <string name="label_auto_update">自動更新過濾規則</string>
+    <string name="desc_auto_update">每天在背景自動重新整理一次</string>
+    <string name="status_last_updated">上次更新：%1$s</string>
+    <string name="status_never">從未</string>
+    <string name="status_rules_loaded">已載入規則：%1$d 條</string>
+    <string name="toast_url_cleaned">連結已清理</string>
+    <string name="toast_no_rules">尚無過濾規則，請開啟「分享連結清理」更新</string>
+    <string name="toast_update_success">過濾規則已更新，共 %1$d 條</string>
+</resources>

@@ -1,0 +1,16 @@
+<resources>
+    <string name="app_name">Share URL Cleaner</string>
+    <string name="title_settings">URL Cleaner</string>
+    <string name="label_filter_url">Filter List URL</string>
+    <string name="cd_save_url">Save URL</string>
+    <string name="btn_update_now">Update Now</string>
+    <string name="btn_updating">Updating…</string>
+    <string name="label_auto_update">Auto-update filters</string>
+    <string name="desc_auto_update">Refreshes once daily in the background</string>
+    <string name="status_last_updated">Last updated: %1$s</string>
+    <string name="status_never">Never</string>
+    <string name="status_rules_loaded">Rules loaded: %1$d</string>
+    <string name="toast_url_cleaned">URL cleaned</string>
+    <string name="toast_no_rules">No filter rules — open Share URL Cleaner to update</string>
+    <string name="toast_update_success">Filter updated — %1$d rules loaded</string>
+</resources>
