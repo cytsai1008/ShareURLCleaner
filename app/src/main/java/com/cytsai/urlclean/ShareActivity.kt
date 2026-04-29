@@ -1,5 +1,6 @@
 package com.cytsai.urlclean
 
+import android.content.ClipData
 import android.content.ComponentName
 import android.content.Intent
 import android.net.Uri
@@ -8,7 +9,7 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.core.content.IntentCompat
 import androidx.lifecycle.lifecycleScope
-import com.cytsai.urlclean.core.UrlCleaner
+import com.cytsai.urlclean.core.ShareTextCleaner
 import com.cytsai.urlclean.data.FilterRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -20,25 +21,45 @@ class ShareActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         val sourceIntent = intent
+        val sourceType = sourceIntent.type
+        val sourceStream = IntentCompat.getParcelableExtra(
+            sourceIntent,
+            Intent.EXTRA_STREAM,
+            Uri::class.java,
+        )
         val sharedText = sourceIntent?.getStringExtra(Intent.EXTRA_TEXT)
         if (sharedText.isNullOrBlank()) {
+            Toast.makeText(
+                applicationContext,
+                getString(R.string.toast_no_url_found),
+                Toast.LENGTH_SHORT
+            ).show()
             finish()
             return
         }
 
-        val sourceType = sourceIntent.type
-        val sourceStream = IntentCompat.getParcelableExtra(sourceIntent, Intent.EXTRA_STREAM, Uri::class.java)
+        val hasUrl = ShareTextCleaner.cleanFirstUrl(sharedText, emptyList()).foundUrl
+        if (sourceStream != null && !hasUrl) {
+            Toast.makeText(
+                applicationContext,
+                getString(R.string.toast_no_url_found),
+                Toast.LENGTH_SHORT
+            ).show()
+            finish()
+            return
+        }
 
         lifecycleScope.launch {
-            val (cleanedUrl, toast) = withContext(Dispatchers.IO) {
-                if (sharedText.startsWith("http://") || sharedText.startsWith("https://")) {
+            val (cleanedText, toast) = withContext(Dispatchers.IO) {
+                if (hasUrl) {
                     val rules = FilterRepository(applicationContext).loadRules()
-                    if (rules.isEmpty()) {
-                        sharedText to R.string.toast_no_rules
-                    } else {
-                        val cleaned = UrlCleaner.clean(sharedText, rules)
-                        cleaned to if (cleaned != sharedText) R.string.toast_url_cleaned else null
+                    val result = ShareTextCleaner.cleanFirstUrl(sharedText, rules)
+                    val toast = when {
+                        rules.isEmpty() -> R.string.toast_no_rules
+                        result.cleaned -> R.string.toast_url_cleaned
+                        else -> null
                     }
+                    result.text to toast
                 } else {
                     sharedText to null
                 }
@@ -51,9 +72,10 @@ class ShareActivity : ComponentActivity() {
 
             val sendIntent = Intent(Intent.ACTION_SEND).apply {
                 type = if (sourceStream != null && !sourceType.isNullOrBlank()) sourceType else "text/plain"
-                putExtra(Intent.EXTRA_TEXT, cleanedUrl)
+                putExtra(Intent.EXTRA_TEXT, cleanedText)
                 if (sourceStream != null) {
                     putExtra(Intent.EXTRA_STREAM, sourceStream)
+                    clipData = ClipData.newRawUri(null, sourceStream)
                     addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                 }
             }

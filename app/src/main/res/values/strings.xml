@@ -15,6 +15,7 @@
     <string name="status_never">Never</string>
     <string name="status_rules_loaded">Rules loaded: %1$d</string>
     <string name="toast_url_cleaned">URL cleaned</string>
+    <string name="toast_no_url_found">No URL found to clean</string>
     <string name="toast_no_rules">No filter rules — open Share URL Cleaner to update</string>
     <string name="toast_update_success">Filter updated — %1$d rules loaded</string>
 </resources>

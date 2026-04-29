@@ -15,6 +15,7 @@
     <string name="status_never">從未</string>
     <string name="status_rules_loaded">已載入規則：%1$d 條</string>
     <string name="toast_url_cleaned">連結已清理</string>
+    <string name="toast_no_url_found">找不到可清理的連結</string>
     <string name="toast_no_rules">尚無過濾規則，請開啟「分享連結清理」更新</string>
     <string name="toast_update_success">過濾規則已更新，共 %1$d 條</string>
 </resources>
