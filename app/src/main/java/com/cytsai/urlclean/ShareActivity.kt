@@ -2,9 +2,11 @@ package com.cytsai.urlclean
 
 import android.content.ComponentName
 import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
+import androidx.core.content.IntentCompat
 import androidx.lifecycle.lifecycleScope
 import com.cytsai.urlclean.core.UrlCleaner
 import com.cytsai.urlclean.data.FilterRepository
@@ -17,11 +19,15 @@ class ShareActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        val sharedText = intent?.getStringExtra(Intent.EXTRA_TEXT)
+        val sourceIntent = intent
+        val sharedText = sourceIntent?.getStringExtra(Intent.EXTRA_TEXT)
         if (sharedText.isNullOrBlank()) {
             finish()
             return
         }
+
+        val sourceType = sourceIntent.type
+        val sourceStream = IntentCompat.getParcelableExtra(sourceIntent, Intent.EXTRA_STREAM, Uri::class.java)
 
         lifecycleScope.launch {
             val (cleanedUrl, toast) = withContext(Dispatchers.IO) {
@@ -44,8 +50,12 @@ class ShareActivity : ComponentActivity() {
             }
 
             val sendIntent = Intent(Intent.ACTION_SEND).apply {
-                type = "text/plain"
+                type = if (sourceStream != null && !sourceType.isNullOrBlank()) sourceType else "text/plain"
                 putExtra(Intent.EXTRA_TEXT, cleanedUrl)
+                if (sourceStream != null) {
+                    putExtra(Intent.EXTRA_STREAM, sourceStream)
+                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                }
             }
             val chooser = Intent.createChooser(sendIntent, null).apply {
                 putExtra(
