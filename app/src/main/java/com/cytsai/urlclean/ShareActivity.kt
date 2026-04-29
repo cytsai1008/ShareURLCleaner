@@ -28,32 +28,19 @@ class ShareActivity : ComponentActivity() {
             Uri::class.java,
         )
         val sharedText = sourceIntent?.getStringExtra(Intent.EXTRA_TEXT)
-        if (sharedText.isNullOrBlank()) {
-            Toast.makeText(
-                applicationContext,
-                getString(R.string.toast_no_url_found),
-                Toast.LENGTH_SHORT
-            ).show()
+        if (sharedText.isNullOrBlank() && sourceStream == null) {
             finish()
             return
         }
 
-        val hasUrl = ShareTextCleaner.cleanFirstUrl(sharedText, emptyList()).foundUrl
-        if (sourceStream != null && !hasUrl) {
-            Toast.makeText(
-                applicationContext,
-                getString(R.string.toast_no_url_found),
-                Toast.LENGTH_SHORT
-            ).show()
-            finish()
-            return
-        }
+        val sharedTextOrEmpty = sharedText.orEmpty()
+        val hasUrl = ShareTextCleaner.cleanFirstUrl(sharedTextOrEmpty, emptyList()).foundUrl
 
         lifecycleScope.launch {
             val (cleanedText, toast) = withContext(Dispatchers.IO) {
                 if (hasUrl) {
                     val rules = FilterRepository(applicationContext).loadRules()
-                    val result = ShareTextCleaner.cleanFirstUrl(sharedText, rules)
+                    val result = ShareTextCleaner.cleanFirstUrl(sharedTextOrEmpty, rules)
                     val toast = when {
                         rules.isEmpty() -> R.string.toast_no_rules
                         result.cleaned -> R.string.toast_url_cleaned
@@ -61,7 +48,7 @@ class ShareActivity : ComponentActivity() {
                     }
                     result.text to toast
                 } else {
-                    sharedText to null
+                    sharedTextOrEmpty to null
                 }
             }
 
@@ -72,7 +59,9 @@ class ShareActivity : ComponentActivity() {
 
             val sendIntent = Intent(Intent.ACTION_SEND).apply {
                 type = if (sourceStream != null && !sourceType.isNullOrBlank()) sourceType else "text/plain"
-                putExtra(Intent.EXTRA_TEXT, cleanedText)
+                if (cleanedText.isNotBlank()) {
+                    putExtra(Intent.EXTRA_TEXT, cleanedText)
+                }
                 if (sourceStream != null) {
                     putExtra(Intent.EXTRA_STREAM, sourceStream)
                     clipData = ClipData.newRawUri(null, sourceStream)
