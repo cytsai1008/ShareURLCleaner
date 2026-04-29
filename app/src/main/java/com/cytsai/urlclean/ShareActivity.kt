@@ -27,7 +27,7 @@ class ShareActivity : ComponentActivity() {
             Intent.EXTRA_STREAM,
             Uri::class.java,
         )
-        val sharedText = sourceIntent?.getStringExtra(Intent.EXTRA_TEXT)
+        val sharedText = sourceIntent.getStringExtra(Intent.EXTRA_TEXT)
         if (sharedText.isNullOrBlank() && sourceStream == null) {
             finish()
             return
