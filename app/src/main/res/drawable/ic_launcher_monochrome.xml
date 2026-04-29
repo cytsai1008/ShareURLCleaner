@@ -11,14 +11,7 @@
         android:translateY="23.4">
         <path
             android:fillColor="#00000000"
-            android:pathData="M7.05,11.293l-1.414,1.414a4,4 0,0 0,5.657 5.657l1.415,-1.414M11.293,7.05l1.414,-1.414a4,4 0,1 1,5.656 5.657l-1.414,1.414"
-            android:strokeWidth="2.5"
-            android:strokeColor="#FFFFFFFF"
-            android:strokeLineCap="round"
-            android:strokeLineJoin="round" />
-        <path
-            android:fillColor="#00000000"
-            android:pathData="M16,20v-2M18,16h2M6,8H4M8,4v2"
+            android:pathData="M16,20v-2M18,16h2M7.05,11.293l-1.414,1.414a4,4 0,0 0,5.657 5.657l1.415,-1.414M6,8H4M8,4v2M11.293,7.05l1.414,-1.414a4,4 0,1 1,5.656 5.657l-1.414,1.414"
             android:strokeWidth="2.5"
             android:strokeColor="#FFFFFFFF"
             android:strokeLineCap="round"

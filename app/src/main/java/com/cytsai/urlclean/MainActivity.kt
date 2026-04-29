@@ -2,6 +2,7 @@ package com.cytsai.urlclean
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
@@ -32,8 +33,8 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
-import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -49,6 +50,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.cytsai.urlclean.data.SettingsDataStore
 import com.cytsai.urlclean.ui.theme.ShareURLCleanerTheme
 import java.time.Instant
 import java.time.ZoneId
@@ -60,6 +62,7 @@ class MainActivity : ComponentActivity() {
 
     @OptIn(ExperimentalMaterial3Api::class)
     override fun onCreate(savedInstanceState: Bundle?) {
+        setTheme(R.style.Theme_ShareURLCleaner)
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
@@ -122,25 +125,42 @@ private fun SettingsScreen(
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        OutlinedTextField(
-            value = localUrl,
-            onValueChange = { localUrl = it },
-            label = { Text(stringResource(R.string.label_filter_url)) },
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true,
-            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-            keyboardActions = KeyboardActions(onDone = { saveUrl() }),
-            trailingIcon = {
-                if (urlDirty) {
-                    IconButton(onClick = { saveUrl() }) {
-                        Icon(
-                            Icons.Default.Check,
-                            contentDescription = stringResource(R.string.cd_save_url),
-                        )
+        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            OutlinedTextField(
+                value = localUrl,
+                onValueChange = { localUrl = it },
+                label = { Text(stringResource(R.string.label_filter_url)) },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                keyboardActions = KeyboardActions(onDone = { saveUrl() }),
+                trailingIcon = {
+                    if (urlDirty) {
+                        IconButton(onClick = { saveUrl() }) {
+                            Icon(
+                                Icons.Default.Check,
+                                contentDescription = stringResource(R.string.cd_save_url),
+                            )
+                        }
                     }
+                },
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End,
+            ) {
+                TextButton(
+                    onClick = {
+                        localUrl = SettingsDataStore.DEFAULT_FILTER_URL
+                        onSaveUrl(SettingsDataStore.DEFAULT_FILTER_URL)
+                        focusManager.clearFocus()
+                    },
+                    enabled = localUrl != SettingsDataStore.DEFAULT_FILTER_URL,
+                ) {
+                    Text(stringResource(R.string.btn_reset_filter_url))
                 }
-            },
-        )
+            }
+        }
 
         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Button(

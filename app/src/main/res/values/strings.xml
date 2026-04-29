@@ -3,6 +3,7 @@
     <string name="title_settings">URL Cleaner</string>
     <string name="label_filter_url">Filter List URL</string>
     <string name="cd_save_url">Save URL</string>
+    <string name="btn_reset_filter_url">Reset to default</string>
     <string name="btn_update_now">Update Now</string>
     <string name="btn_updating">Updating…</string>
     <string name="label_auto_update">Auto-update filters</string>

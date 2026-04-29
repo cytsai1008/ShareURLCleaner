@@ -3,6 +3,10 @@
 
     <style name="Theme.ShareURLCleaner" parent="android:Theme.Material.Light.NoActionBar" />
 
+    <style name="Theme.ShareURLCleaner.Starting" parent="Theme.ShareURLCleaner">
+        <item name="android:windowBackground">@drawable/splash_screen</item>
+    </style>
+
     <style name="Theme.ShareURLCleaner.Transparent" parent="android:Theme.Material.Light.NoActionBar">
         <item name="android:windowBackground">@android:color/transparent</item>
         <item name="android:windowIsTranslucent">true</item>

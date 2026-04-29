@@ -3,6 +3,7 @@
     <string name="title_settings">連結清理</string>
     <string name="label_filter_url">過濾規則 URL</string>
     <string name="cd_save_url">儲存 URL</string>
+    <string name="btn_reset_filter_url">重設為預設值</string>
     <string name="btn_update_now">立即更新</string>
     <string name="btn_updating">更新中…</string>
     <string name="label_auto_update">自動更新過濾規則</string>
