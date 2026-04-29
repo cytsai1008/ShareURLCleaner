@@ -6,6 +6,9 @@
     <string name="btn_reset_filter_url">重設為預設值</string>
     <string name="btn_update_now">立即更新</string>
     <string name="btn_updating">更新中…</string>
+    <string name="btn_third_party_licenses">第三方授權</string>
+    <string name="title_third_party_licenses">第三方授權</string>
+    <string name="btn_close">關閉</string>
     <string name="label_auto_update">自動更新過濾規則</string>
     <string name="desc_auto_update">每天在背景自動重新整理一次</string>
     <string name="status_last_updated">上次更新：%1$s</string>

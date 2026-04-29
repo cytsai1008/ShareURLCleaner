@@ -6,6 +6,9 @@
     <string name="btn_reset_filter_url">Reset to default</string>
     <string name="btn_update_now">Update Now</string>
     <string name="btn_updating">Updating…</string>
+    <string name="btn_third_party_licenses">Third-party licenses</string>
+    <string name="title_third_party_licenses">Third-party licenses</string>
+    <string name="btn_close">Close</string>
     <string name="label_auto_update">Auto-update filters</string>
     <string name="desc_auto_update">Refreshes once daily in the background</string>
     <string name="status_last_updated">Last updated: %1$s</string>

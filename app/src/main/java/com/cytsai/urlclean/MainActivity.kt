@@ -22,6 +22,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -96,6 +97,7 @@ private fun SettingsScreen(
 ) {
     var localUrl by rememberSaveable { mutableStateOf("") }
     var urlInitialized by remember { mutableStateOf(false) }
+    var showLicenses by rememberSaveable { mutableStateOf(false) }
     val focusManager = LocalFocusManager.current
 
     LaunchedEffect(uiState.filterUrl) {
@@ -230,9 +232,56 @@ private fun SettingsScreen(
             )
         }
 
+        HorizontalDivider()
+
+        TextButton(
+            onClick = { showLicenses = true },
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Text(stringResource(R.string.btn_third_party_licenses))
+        }
+
         Spacer(Modifier.height(8.dp))
     }
+
+    if (showLicenses) {
+        ThirdPartyLicensesDialog(onDismiss = { showLicenses = false })
+    }
 }
+
+@Composable
+private fun ThirdPartyLicensesDialog(onDismiss: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.btn_close))
+            }
+        },
+        title = { Text(stringResource(R.string.title_third_party_licenses)) },
+        text = {
+            Text(
+                text = thirdPartyLicensesText(),
+                modifier = Modifier.verticalScroll(rememberScrollState()),
+                style = MaterialTheme.typography.bodyMedium,
+            )
+        },
+    )
+}
+
+private fun thirdPartyLicensesText(): String = listOf(
+    "AndroidX Core KTX - Apache License 2.0",
+    "AndroidX Activity Compose - Apache License 2.0",
+    "AndroidX Lifecycle - Apache License 2.0",
+    "AndroidX DataStore - Apache License 2.0",
+    "AndroidX WorkManager - Apache License 2.0",
+    "Jetpack Compose UI - Apache License 2.0",
+    "Jetpack Compose Material 3 - Apache License 2.0",
+    "Jetpack Compose Material Icons - Apache License 2.0",
+    "Kotlin - Apache License 2.0",
+    "OkHttp - Apache License 2.0",
+    "Phosphor Icons - MIT License",
+).joinToString(separator = "\n\n")
 
 private val timestampFormatter: DateTimeFormatter =
     DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
