@@ -7,7 +7,9 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.cytsai.urlclean.data.AggressiveMode
 import com.cytsai.urlclean.data.FilterRepository
+import com.cytsai.urlclean.data.FilterSource
 import com.cytsai.urlclean.data.SettingsDataStore
 import com.cytsai.urlclean.worker.FilterUpdateWorker
 import kotlinx.coroutines.Dispatchers
@@ -22,10 +24,12 @@ import kotlinx.coroutines.withContext
 import java.io.IOException
 
 data class SettingsUiState(
-    val filterUrl: String = "",
+    val sources: List<FilterSource> = emptyList(),
     val autoUpdate: Boolean = false,
     val lastUpdated: Long = 0L,
     val ruleCount: Int = 0,
+    val aggressiveMode: AggressiveMode = AggressiveMode.OFF,
+    val aggressiveDomains: String = "",
     val isUpdating: Boolean = false,
     val updateError: String? = null,
 )
@@ -47,25 +51,53 @@ class MainViewModel(
         }
     }
 
-    val uiState = combine(
-        dataStore.filterUrl,
+    // combine() tops out at five flows, so the filter-related ones are folded first.
+    private val filterState = combine(
+        dataStore.filterSources,
         dataStore.autoUpdate,
         dataStore.lastUpdated,
         dataStore.ruleCount,
+    ) { sources, auto, ts, count ->
+        SettingsUiState(sources = sources, autoUpdate = auto, lastUpdated = ts, ruleCount = count)
+    }
+
+    val uiState = combine(
+        filterState,
+        dataStore.aggressiveMode,
+        dataStore.aggressiveDomains,
         _updateStatus,
-    ) { url, auto, ts, count, (updating, error) ->
-        SettingsUiState(
-            filterUrl = url,
-            autoUpdate = auto,
-            lastUpdated = ts,
-            ruleCount = count,
+    ) { base, mode, domains, (updating, error) ->
+        base.copy(
+            aggressiveMode = mode,
+            aggressiveDomains = domains,
             isUpdating = updating,
             updateError = error,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SettingsUiState())
 
-    fun updateFilterUrl(url: String) {
-        viewModelScope.launch { dataStore.setFilterUrl(url) }
+    fun setSourceEnabled(url: String, enabled: Boolean) {
+        viewModelScope.launch {
+            val updated = dataStore.filterSources.first()
+                .map { if (it.url == url) it.copy(enabled = enabled) else it }
+            dataStore.setFilterSources(updated)
+        }
+    }
+
+    fun addSource(rawUrl: String) {
+        val url = rawUrl.trim()
+        if (url.isEmpty()) return
+        viewModelScope.launch {
+            val current = dataStore.filterSources.first()
+            if (current.any { it.url == url }) return@launch
+            dataStore.setFilterSources(current + FilterSource(url, enabled = true))
+        }
+    }
+
+    fun removeSource(url: String) {
+        if (SettingsDataStore.isBuiltIn(url)) return
+        viewModelScope.launch {
+            dataStore.setFilterSources(dataStore.filterSources.first().filterNot { it.url == url })
+        }
     }
 
     fun setAutoUpdate(enabled: Boolean) {
@@ -76,13 +108,21 @@ class MainViewModel(
         }
     }
 
+    fun setAggressiveMode(mode: AggressiveMode) {
+        viewModelScope.launch { dataStore.setAggressiveMode(mode) }
+    }
+
+    fun updateAggressiveDomains(raw: String) {
+        viewModelScope.launch { dataStore.setAggressiveDomains(raw) }
+    }
+
     @SuppressLint("StringFormatInvalid")
     fun triggerManualUpdate() {
         if (_updateStatus.value.first) return
         viewModelScope.launch {
             _updateStatus.update { Pair(true, null) }
-            val url = uiState.value.filterUrl.ifEmpty { dataStore.filterUrl.first() }
-            val result = repo.downloadAndUpdate(url)
+            val urls = dataStore.filterSources.first().filter { it.enabled }.map { it.url }
+            val result = repo.downloadAndUpdate(urls)
             result.fold(
                 onSuccess = { count ->
                     dataStore.setLastUpdated(System.currentTimeMillis())

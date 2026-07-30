@@ -46,8 +46,8 @@ class FilterUpdateWorker(
         val repo = FilterRepository(applicationContext)
 
         return try {
-            val url = dataStore.filterUrl.first()
-            val result = repo.downloadAndUpdate(url)
+            val urls = dataStore.filterSources.first().filter { it.enabled }.map { it.url }
+            val result = repo.downloadAndUpdate(urls)
             result.fold(
                 onSuccess = { count ->
                     dataStore.setLastUpdated(System.currentTimeMillis())

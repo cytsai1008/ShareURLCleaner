@@ -17,4 +17,24 @@
     <string name="toast_url_cleaned">链接已清理</string>
     <string name="toast_no_rules">暂无过滤规则，请打开「分享链接清理」更新</string>
     <string name="toast_update_success">过滤规则已更新，共 %1$d 条</string>
+    <string name="label_aggressive">激进模式</string>
+    <string name="desc_aggressive">清理前先跟随跳转取得真实链接。每次分享会多一次网络请求，且该链接会在你分享之前先被本应用打开——密码重置、免密登录之类的一次性链接可能因此失效。</string>
+    <string name="aggressive_off">关闭</string>
+    <string name="aggressive_selected">仅指定域名</string>
+    <string name="aggressive_all">所有链接</string>
+    <string name="label_aggressive_domains">域名（每行一个）</string>
+    <string name="label_aggressive_domains_count">域名列表（%1$d）</string>
+    <string name="cd_save_domains">保存域名</string>
+    <string name="aggressive_off_desc">仅清理跟踪参数</string>
+    <string name="aggressive_selected_desc">仅对下方列出的域名跟随跳转</string>
+    <string name="aggressive_all_desc">对所有分享的链接跟随跳转</string>
+    <string name="hint_aggressive_domains">每行一个，子域名会自动匹配。</string>
+    <string name="label_filter_lists">过滤规则列表</string>
+    <string name="btn_add_filter">添加规则列表</string>
+    <string name="title_add_filter">添加规则列表</string>
+    <string name="cd_remove_filter">移除规则列表</string>
+    <string name="btn_add">添加</string>
+    <string name="btn_cancel">取消</string>
+    <string name="toast_fetching_url">正在获取链接，请稍候</string>
+    <string name="toast_fetch_failed">无法获取真实链接，已按原样分享</string>
 </resources>

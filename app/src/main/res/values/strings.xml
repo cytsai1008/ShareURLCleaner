@@ -17,4 +17,24 @@
     <string name="toast_url_cleaned">URL cleaned</string>
     <string name="toast_no_rules">No filter rules — open Share URL Cleaner to update</string>
     <string name="toast_update_success">Filter updated — %1$d rules loaded</string>
+    <string name="label_aggressive">Aggressive mode</string>
+    <string name="desc_aggressive">Follow redirects to the real link before cleaning. Costs one network request per share, and the link is opened by this app before you share it — one-time links such as password resets or magic sign-in links can be used up.</string>
+    <string name="aggressive_off">Off</string>
+    <string name="aggressive_selected">Selected domains only</string>
+    <string name="aggressive_all">All links</string>
+    <string name="label_aggressive_domains">Domains (one per line)</string>
+    <string name="label_aggressive_domains_count">Domain list (%1$d)</string>
+    <string name="cd_save_domains">Save domains</string>
+    <string name="aggressive_off_desc">Clean tracking parameters only</string>
+    <string name="aggressive_selected_desc">Follow redirects for the domains listed below</string>
+    <string name="aggressive_all_desc">Follow redirects for every shared link</string>
+    <string name="hint_aggressive_domains">One per line. Subdomains are matched automatically.</string>
+    <string name="label_filter_lists">Filter lists</string>
+    <string name="btn_add_filter">Add filter list</string>
+    <string name="title_add_filter">Add filter list</string>
+    <string name="cd_remove_filter">Remove filter list</string>
+    <string name="btn_add">Add</string>
+    <string name="btn_cancel">Cancel</string>
+    <string name="toast_fetching_url">Fetching URL, please wait</string>
+    <string name="toast_fetch_failed">Couldn\'t fetch the real URL — shared as-is</string>
 </resources>

@@ -5,17 +5,24 @@ import android.content.ComponentName
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.core.content.IntentCompat
 import androidx.lifecycle.lifecycleScope
+import com.cytsai.urlclean.core.RedirectResolver
 import com.cytsai.urlclean.core.ShareTextCleaner
 import com.cytsai.urlclean.data.FilterRepository
+import com.cytsai.urlclean.data.SettingsDataStore
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 class ShareActivity : ComponentActivity() {
+
+    private val mainHandler = Handler(Looper.getMainLooper())
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -37,11 +44,32 @@ class ShareActivity : ComponentActivity() {
         val hasUrl = ShareTextCleaner.cleanFirstUrl(sharedTextOrEmpty, emptyList()).foundUrl
 
         lifecycleScope.launch {
+            var fetchFailed = false
             val (cleanedText, toast) = withContext(Dispatchers.IO) {
                 if (hasUrl) {
                     val rules = FilterRepository(applicationContext).loadRules()
-                    val result = ShareTextCleaner.cleanFirstUrl(sharedTextOrEmpty, rules)
+                    val settings = SettingsDataStore(applicationContext)
+                    val resolver = RedirectResolver.forMode(
+                        settings.aggressiveMode.first(),
+                        SettingsDataStore.parseDomains(settings.aggressiveDomains.first()),
+                        onFetch = {
+                            // Fires on the IO thread right before the network call, so the user
+                            // gets an explanation for the pause before the chooser appears.
+                            mainHandler.post {
+                                Toast.makeText(
+                                    applicationContext,
+                                    getString(R.string.toast_fetching_url),
+                                    Toast.LENGTH_SHORT,
+                                ).show()
+                            }
+                        },
+                        onFailure = { fetchFailed = true },
+                    )
+                    val result = ShareTextCleaner.cleanFirstUrl(sharedTextOrEmpty, rules, resolver)
                     val toast = when {
+                        // Ranked first: the user was told to wait, so they are owed the outcome.
+                        // The link still goes out, just without its redirect followed.
+                        fetchFailed -> R.string.toast_fetch_failed
                         rules.isEmpty() -> R.string.toast_no_rules
                         result.cleaned -> R.string.toast_url_cleaned
                         else -> null

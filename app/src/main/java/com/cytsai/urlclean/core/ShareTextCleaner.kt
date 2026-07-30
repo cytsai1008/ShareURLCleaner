@@ -12,22 +12,27 @@ object ShareTextCleaner {
         val cleaned: Boolean,
     )
 
-    fun cleanFirstUrl(text: String, rules: List<FilterRule>): Result {
+    /**
+     * @param resolve optional aggressive-mode redirect resolver. When supplied, the cleaned URL is
+     * followed to its destination and the destination is cleaned in turn. Blocking — the caller is
+     * responsible for running this off the main thread. Return null to skip (not applicable / failed).
+     */
+    fun cleanFirstUrl(
+        text: String,
+        rules: List<FilterRule>,
+        resolve: ((String) -> String?)? = null,
+    ): Result {
         val urlMatch = httpUrlRegex.find(text) ?: return Result(
             text = text,
             foundUrl = false,
             cleaned = false,
         )
 
-        if (rules.isEmpty()) {
-            return Result(
-                text = text,
-                foundUrl = true,
-                cleaned = false,
-            )
+        var cleanedUrl = UrlCleaner.clean(urlMatch.value, rules)
+        resolve?.invoke(cleanedUrl)?.let { resolved ->
+            if (resolved != cleanedUrl) cleanedUrl = UrlCleaner.clean(resolved, rules)
         }
 
-        val cleanedUrl = UrlCleaner.clean(urlMatch.value, rules)
         val cleanedText = text.replaceRange(urlMatch.range, cleanedUrl)
 
         return Result(

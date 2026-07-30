@@ -11,7 +11,8 @@ object UrlCleaner {
 
         val paramsToRemove = buildSet {
             for (rule in rules) {
-                if (rule.domain == null || host == rule.domain || host.endsWith(".${rule.domain}")) {
+                val scoped = rule.domains
+                if (scoped == null || scoped.any { host == it || host.endsWith(".$it") }) {
                     add(rule.param.lowercase())
                 }
             }

@@ -91,5 +91,5 @@ No DI framework. `MainViewModel` is instantiated via a nested `Factory(applicati
 
 - Package: `com.cytsai.urlclean`
 - minSdk 26 (Android 8.0) — `java.time` APIs (e.g., `Instant`, `ZoneId`) are safe to use without desugaring
-- compileSdk / targetSdk 36
+- compileSdk / targetSdk 37
 - Kotlin 2.2.10, AGP 9.2.0, Compose BOM 2026.02.01

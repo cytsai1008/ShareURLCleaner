@@ -17,4 +17,24 @@
     <string name="toast_url_cleaned">連結已清理</string>
     <string name="toast_no_rules">尚無過濾規則，請開啟「分享連結清理」更新</string>
     <string name="toast_update_success">過濾規則已更新，共 %1$d 條</string>
+    <string name="label_aggressive">積極模式</string>
+    <string name="desc_aggressive">清理前先跟隨轉址取得真實連結。每次分享會多一次網路請求，且該連結會在你分享之前先被本應用程式開啟——密碼重設、免密登入之類的一次性連結可能因此失效。</string>
+    <string name="aggressive_off">關閉</string>
+    <string name="aggressive_selected">僅指定網域</string>
+    <string name="aggressive_all">所有連結</string>
+    <string name="label_aggressive_domains">網域（每行一個）</string>
+    <string name="label_aggressive_domains_count">網域清單（%1$d）</string>
+    <string name="cd_save_domains">儲存網域</string>
+    <string name="aggressive_off_desc">僅清理追蹤參數</string>
+    <string name="aggressive_selected_desc">僅對下方列出的網域跟隨轉址</string>
+    <string name="aggressive_all_desc">對所有分享的連結跟隨轉址</string>
+    <string name="hint_aggressive_domains">每行一個，子網域會自動比對。</string>
+    <string name="label_filter_lists">過濾規則清單</string>
+    <string name="btn_add_filter">新增規則清單</string>
+    <string name="title_add_filter">新增規則清單</string>
+    <string name="cd_remove_filter">移除規則清單</string>
+    <string name="btn_add">新增</string>
+    <string name="btn_cancel">取消</string>
+    <string name="toast_fetching_url">正在取得連結，請稍候</string>
+    <string name="toast_fetch_failed">無法取得真實連結，已按原樣分享</string>
 </resources>

@@ -14,17 +14,15 @@ android {
     }
     namespace = "com.cytsai.urlclean"
     compileSdk {
-        version = release(36) {
-            minorApiLevel = 1
-        }
+        version = release(37)
     }
 
     defaultConfig {
         applicationId = "com.cytsai.urlclean"
         minSdk = 26
-        targetSdk = 36
+        targetSdk = 37
         versionCode = 1
-        versionName = "0.9"
+        versionName = "0.10"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -46,6 +44,11 @@ android {
     }
     buildFeatures {
         compose = true
+    }
+    // ponytail: generates locales_config.xml + manifest entry from res/values-* folders,
+    // so Android 13+ shows the per-app Language picker in system App info. No in-app UI needed.
+    androidResources {
+        generateLocaleConfig = true
     }
 }
 
