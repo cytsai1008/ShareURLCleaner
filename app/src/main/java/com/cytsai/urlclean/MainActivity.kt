@@ -13,10 +13,16 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
@@ -89,6 +95,10 @@ class MainActivity : ComponentActivity() {
                     topBar = {
                         TopAppBar(title = { Text(stringResource(R.string.title_settings)) })
                     },
+                    // Bottom inset is handled inside SettingsScreen so it can collapse into
+                    // the IME inset instead of stacking with it.
+                    contentWindowInsets = WindowInsets.safeDrawing
+                        .only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal),
                 ) { innerPadding ->
                     SettingsScreen(
                         uiState = uiState,
@@ -149,6 +159,12 @@ private fun SettingsScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
+            // navigationBarsPadding consumes its inset, so imePadding only adds what the
+            // keyboard needs beyond it — total is max(navbar, ime), not the sum. Both go
+            // before verticalScroll so the viewport shrinks and the focused field is
+            // auto-scrolled into view.
+            .navigationBarsPadding()
+            .imePadding()
             .verticalScroll(rememberScrollState())
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),

@@ -41,7 +41,7 @@ class ShareActivity : ComponentActivity() {
         }
 
         val sharedTextOrEmpty = sharedText.orEmpty()
-        val hasUrl = ShareTextCleaner.cleanFirstUrl(sharedTextOrEmpty, emptyList()).foundUrl
+        val hasUrl = ShareTextCleaner.hasUrl(sharedTextOrEmpty)
 
         lifecycleScope.launch {
             var fetchFailed = false
@@ -65,7 +65,7 @@ class ShareActivity : ComponentActivity() {
                         },
                         onFailure = { fetchFailed = true },
                     )
-                    val result = ShareTextCleaner.cleanFirstUrl(sharedTextOrEmpty, rules, resolver)
+                    val result = ShareTextCleaner.cleanUrls(sharedTextOrEmpty, rules, resolver)
                     val toast = when {
                         // Ranked first: the user was told to wait, so they are owed the outcome.
                         // The link still goes out, just without its redirect followed.

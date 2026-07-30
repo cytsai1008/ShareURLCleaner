@@ -1,6 +1,7 @@
 package com.cytsai.urlclean.data
 
 import android.content.Context
+import com.cytsai.urlclean.data.FilterRepository.Companion.RATE_LIMITED_BACKOFF_MS
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
@@ -10,6 +11,7 @@ import okhttp3.Request
 import java.io.File
 import java.io.IOException
 import java.util.concurrent.TimeUnit
+import kotlin.time.Duration.Companion.milliseconds
 
 /** [domains] is null for a global rule; otherwise the hosts (and their subdomains) it applies to. */
 data class FilterRule(val domains: List<String>?, val param: String)
@@ -33,9 +35,15 @@ class FilterRepository(private val context: Context) {
             "objects.githubusercontent.com",
         )
 
-        /** Above this many GitHub-hosted lists in one run, space the requests out. */
-        private const val GITHUB_COOLDOWN_THRESHOLD = 3
-        private const val GITHUB_COOLDOWN_MS = 1_500L
+        /**
+         * Above this many GitHub-hosted lists in one run, space the requests out.
+         *
+         * All four built-ins are on raw.githubusercontent.com, which serves static files far more
+         * generously than the API — so the default set no longer pays the delay. Real rate
+         * limiting is handled where it actually shows up, in [RATE_LIMITED_BACKOFF_MS].
+         */
+        private const val GITHUB_COOLDOWN_THRESHOLD = 6
+        private const val GITHUB_COOLDOWN_MS = 750L
 
         /** Backoff after GitHub actually says no (429, or 403 with a rate-limit body). */
         private const val RATE_LIMITED_BACKOFF_MS = 5_000L
@@ -112,6 +120,9 @@ class FilterRepository(private val context: Context) {
                 .takeWhile { it != '^' && it != '/' && it != '*' && it != '?' }
                 .lowercase()
                 .ifEmpty { null }
+                // `||shopee.*^` truncates to "shopee." — keep it as the TLD wildcard the rule
+                // meant, which the host matcher understands, instead of a host ending in a dot.
+                ?.let { if (it.endsWith('.')) "$it*" else it }
         }
     }
 
@@ -168,7 +179,7 @@ class FilterRepository(private val context: Context) {
                 val rateLimited = it.code == 429 || (it.code == 403 && isGitHub(url))
                 if (!rateLimited || attempt == 1) throw IOException("HTTP ${it.code} for $url")
             }
-            delay(RATE_LIMITED_BACKOFF_MS)
+            delay(RATE_LIMITED_BACKOFF_MS.milliseconds)
         }
         throw IOException("Rate limited: $url")
     }

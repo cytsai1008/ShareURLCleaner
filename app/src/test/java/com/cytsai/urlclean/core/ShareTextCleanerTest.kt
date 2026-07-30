@@ -9,8 +9,8 @@ import org.junit.Test
 class ShareTextCleanerTest {
 
     @Test
-    fun cleanFirstUrl_removesMatchingParamFromPlainUrl() {
-        val result = ShareTextCleaner.cleanFirstUrl(
+    fun cleanUrls_removesMatchingParamFromPlainUrl() {
+        val result = ShareTextCleaner.cleanUrls(
             text = "https://example.com/page?utm_source=newsletter&id=123",
             rules = listOf(FilterRule(domains = null, param = "utm_source")),
         )
@@ -21,8 +21,8 @@ class ShareTextCleanerTest {
     }
 
     @Test
-    fun cleanFirstUrl_removesMatchingParamFromUrlInsideCaption() {
-        val result = ShareTextCleaner.cleanFirstUrl(
+    fun cleanUrls_removesMatchingParamFromUrlInsideCaption() {
+        val result = ShareTextCleaner.cleanUrls(
             text = "Look https://example.com/page?utm_source=newsletter&id=123 for details",
             rules = listOf(FilterRule(domains = null, param = "utm_source")),
         )
@@ -33,8 +33,8 @@ class ShareTextCleanerTest {
     }
 
     @Test
-    fun cleanFirstUrl_reportsNoUrl() {
-        val result = ShareTextCleaner.cleanFirstUrl(
+    fun cleanUrls_reportsNoUrl() {
+        val result = ShareTextCleaner.cleanUrls(
             text = "just a caption",
             rules = listOf(FilterRule(domains = null, param = "utm_source")),
         )
@@ -45,10 +45,10 @@ class ShareTextCleanerTest {
     }
 
     @Test
-    fun cleanFirstUrl_keepsTextWhenRulesAreEmpty() {
+    fun cleanUrls_keepsTextWhenRulesAreEmpty() {
         val text = "https://example.com/page?utm_source=newsletter&id=123"
 
-        val result = ShareTextCleaner.cleanFirstUrl(text = text, rules = emptyList())
+        val result = ShareTextCleaner.cleanUrls(text = text, rules = emptyList())
 
         assertEquals(text, result.text)
         assertTrue(result.foundUrl)
@@ -56,8 +56,8 @@ class ShareTextCleanerTest {
     }
 
     @Test
-    fun cleanFirstUrl_cleansResolvedUrlWhenRedirected() {
-        val result = ShareTextCleaner.cleanFirstUrl(
+    fun cleanUrls_cleansResolvedUrlWhenRedirected() {
+        val result = ShareTextCleaner.cleanUrls(
             text = "See https://bit.ly/abc for details",
             rules = listOf(FilterRule(domains = null, param = "utm_source")),
             resolve = { "https://example.com/page?utm_source=twitter&id=1" },
@@ -68,8 +68,8 @@ class ShareTextCleanerTest {
     }
 
     @Test
-    fun cleanFirstUrl_keepsCleanedUrlWhenResolverDeclines() {
-        val result = ShareTextCleaner.cleanFirstUrl(
+    fun cleanUrls_keepsCleanedUrlWhenResolverDeclines() {
+        val result = ShareTextCleaner.cleanUrls(
             text = "https://example.com/page?utm_source=x&id=1",
             rules = listOf(FilterRule(domains = null, param = "utm_source")),
             resolve = { null },
@@ -80,9 +80,9 @@ class ShareTextCleanerTest {
     }
 
     @Test
-    fun cleanFirstUrl_resolverSeesAlreadyCleanedUrl() {
+    fun cleanUrls_resolverSeesAlreadyCleanedUrl() {
         var seen: String? = null
-        ShareTextCleaner.cleanFirstUrl(
+        ShareTextCleaner.cleanUrls(
             text = "https://example.com/page?utm_source=x&id=1",
             rules = listOf(FilterRule(domains = null, param = "utm_source")),
             resolve = { seen = it; null },
@@ -91,11 +91,27 @@ class ShareTextCleanerTest {
         assertEquals("https://example.com/page?id=1", seen)
     }
 
+    /** A shared caption regularly carries several links; every one of them gets cleaned. */
     @Test
-    fun cleanFirstUrl_keepsUrlWhenNoRuleMatches() {
+    fun cleanUrls_cleansEveryUrlInTheText() {
+        val result = ShareTextCleaner.cleanUrls(
+            text = "https://a.example/1?utm_source=x\nsth https://b23.tv/abc and https://c.example/3",
+            rules = listOf(FilterRule(domains = null, param = "utm_source")),
+            resolve = { if (it == "https://b23.tv/abc") "https://bilibili.com/v/1?utm_source=y" else null },
+        )
+
+        assertEquals(
+            "https://a.example/1\nsth https://bilibili.com/v/1 and https://c.example/3",
+            result.text,
+        )
+        assertTrue(result.cleaned)
+    }
+
+    @Test
+    fun cleanUrls_keepsUrlWhenNoRuleMatches() {
         val text = "https://example.com/page?utm_source=newsletter&id=123"
 
-        val result = ShareTextCleaner.cleanFirstUrl(
+        val result = ShareTextCleaner.cleanUrls(
             text = text,
             rules = listOf(FilterRule(domains = listOf("other.example"), param = "utm_source")),
         )

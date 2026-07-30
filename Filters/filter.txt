@@ -1,0 +1,23 @@
+[Adblock Plus 2.0]
+! Title: Kenichi's URL Cleaner List
+! Description: Tracking parameters that the public $removeparam lists miss, found while sharing real links. Only removeparam rules — this list does not block anything.
+! Homepage: https://github.com/cytsai1008/ShareURLCleaner
+! Expires: 7 days
+! License: https://github.com/cytsai1008/ShareURLCleaner/blob/main/LICENSE
+
+! Shopee — affiliate/attribution payload on links from the s.shopee.* and shope.ee
+! shorteners. AdGuard filter 17 has some of these, but only for shopee.ph, shopee.co.th
+! and shopee.co.id; `shopee.*` covers every country domain including .tw.
+! Verified: the product page loads identically with all of them stripped.
+$removeparam=credential_token,domain=shopee.*
+$removeparam=gads_t_sig,domain=shopee.*
+$removeparam=mmp_pid,domain=shopee.*
+$removeparam=uls_trackid,domain=shopee.*
+$removeparam=exp_group,domain=shopee.*
+$removeparam=__mobile__,domain=shopee.*
+$removeparam=sp_atk,domain=shopee.*
+$removeparam=xptdk,domain=shopee.*
+$removeparam=publish_id,domain=shopee.*
+$removeparam=promotionId,domain=shopee.*
+$removeparam=stm_medium,domain=shopee.*
+$removeparam=stm_source,domain=shopee.*

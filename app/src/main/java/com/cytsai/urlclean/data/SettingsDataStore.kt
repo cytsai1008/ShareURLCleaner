@@ -47,6 +47,11 @@ class SettingsDataStore(private val context: Context) {
                 enabled = true,
                 name = "uBlock Origin Privacy",
             ),
+            FilterSource(
+                "https://raw.githubusercontent.com/cytsai1008/ShareURLCleaner/main/Filters/filter.txt",
+                enabled = true,
+                name = "Kenichi's URL Cleaner List",
+            ),
         )
 
         private fun builtInName(url: String): String =
@@ -56,6 +61,14 @@ class SettingsDataStore(private val context: Context) {
 
         private fun serializeSources(sources: List<FilterSource>): String =
             sources.joinToString("\n") { "${if (it.enabled) 1 else 0}\t${it.url}" }
+
+        /**
+         * Appends built-ins the stored list has never seen. The UI offers no way to delete a
+         * built-in — only to untick it — so one missing from storage is a list shipped in a
+         * later release, not one the user got rid of.
+         */
+        internal fun withMissingBuiltIns(stored: List<FilterSource>): List<FilterSource> =
+            stored + BUILT_IN_FILTERS.filterNot { builtIn -> stored.any { it.url == builtIn.url } }
 
         private fun parseSources(raw: String): List<FilterSource> = raw
             .lineSequence()
@@ -89,9 +102,9 @@ class SettingsDataStore(private val context: Context) {
             "shorturl.at", "spoti.fi", "t.cn", "t.co",
             "t.ly", "t.snapchat.com", "tb.cn", "threads.com",
             "threads.net", "tiny.cc", "tinyurl.com", "trib.al",
-            "u.jd.com", "url.cn", "v.douyin.com", "v.gd",
-            "v.kuaishou.com", "vm.tiktok.com", "vt.tiktok.com", "xhslink.com",
-            "z.kuaishou.com",
+            "tw.shp.ee", "u.jd.com", "url.cn", "v.douyin.com",
+            "v.gd", "v.kuaishou.com", "vm.tiktok.com", "vt.tiktok.com",
+            "xhslink.com", "z.kuaishou.com",
         ).joinToString("\n")
 
         private val FILTER_URL = stringPreferencesKey("filter_url")
@@ -129,7 +142,7 @@ class SettingsDataStore(private val context: Context) {
      */
     val filterSources: Flow<List<FilterSource>> = context.dataStore.data.map { prefs ->
         val stored = prefs[FILTER_SOURCES]?.let { parseSources(it) }
-        if (!stored.isNullOrEmpty()) return@map stored
+        if (!stored.isNullOrEmpty()) return@map withMissingBuiltIns(stored)
 
         val legacy = prefs[FILTER_URL]
         if (legacy != null && legacy.isNotBlank() && !isBuiltIn(legacy)) {
@@ -148,7 +161,12 @@ class SettingsDataStore(private val context: Context) {
         AggressiveMode.entries.firstOrNull { it.name == stored } ?: AggressiveMode.OFF
     }
 
-    /** Raw, user-editable text. Use [parseDomains] to turn it into matchable hosts. */
+    /**
+     * Raw, user-editable text. Use [parseDomains] to turn it into matchable hosts.
+     *
+     * Absent means "whatever the app ships with", so an untouched list picks up domains added
+     * in a later release. [setAggressiveDomains] keeps it absent until there is a real edit.
+     */
     val aggressiveDomains: Flow<String> = context.dataStore.data.map { prefs ->
         prefs[AGGRESSIVE_DOMAINS] ?: DEFAULT_AGGRESSIVE_DOMAINS
     }
@@ -157,8 +175,19 @@ class SettingsDataStore(private val context: Context) {
         context.dataStore.edit { it[AGGRESSIVE_MODE] = mode.name }
     }
 
+    /**
+     * A list matching the shipped default is stored as "not set" rather than as a copy of it,
+     * so it keeps tracking the default instead of freezing at today's version. Reset does the
+     * same thing by construction.
+     */
     suspend fun setAggressiveDomains(raw: String) {
-        context.dataStore.edit { it[AGGRESSIVE_DOMAINS] = raw }
+        context.dataStore.edit {
+            if (parseDomains(raw) == parseDomains(DEFAULT_AGGRESSIVE_DOMAINS)) {
+                it.remove(AGGRESSIVE_DOMAINS)
+            } else {
+                it[AGGRESSIVE_DOMAINS] = raw
+            }
+        }
     }
 
     suspend fun setAutoUpdate(enabled: Boolean) {

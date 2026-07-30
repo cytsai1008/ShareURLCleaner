@@ -12,7 +12,7 @@ object UrlCleaner {
         val paramsToRemove = buildSet {
             for (rule in rules) {
                 val scoped = rule.domains
-                if (scoped == null || scoped.any { host == it || host.endsWith(".$it") }) {
+                if (scoped == null || scoped.any { hostMatches(host, it) }) {
                     add(rule.param.lowercase())
                 }
             }
@@ -32,4 +32,18 @@ object UrlCleaner {
 
         return builder.build().toString()
     }
+
+    /**
+     * Whether [host] falls under a rule's `domain=` entry, including AdGuard's TLD wildcard
+     * (`shopee.*` — the same brand on every country domain). Over 100 rules in the shipped
+     * lists are written that way, and all of them used to match nothing.
+     */
+    private fun hostMatches(host: String, domain: String): Boolean =
+        if (domain.endsWith(".*")) {
+            // "shopee." — matches shopee.tw and s.shopee.tw, not myshopee.tw.
+            val base = domain.dropLast(1)
+            host.startsWith(base) || host.contains(".$base")
+        } else {
+            host == domain || host.endsWith(".$domain")
+        }
 }

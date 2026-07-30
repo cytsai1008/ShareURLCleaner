@@ -11,6 +11,9 @@ import java.util.concurrent.TimeUnit
  *
  * OkHttp follows redirect chains itself, so the final URL is simply the URL of the
  * request that produced the last response — no need to walk `Location` headers.
+ *
+ * Interstitials that answer 200 and hand off in JavaScript instead
+ * (`document.location.replace("…")`) are followed too, as one more hop.
  */
 object RedirectResolver {
 
@@ -44,19 +47,55 @@ object RedirectResolver {
             .build()
     }
 
+    /** A JS handoff costs an extra round trip, so cap the chain rather than following it blindly. */
+    private const val MAX_HOPS = 3
+
+    /** Enough for a handoff stub; a real page's redirect script sits in the first bytes too. */
+    private const val MAX_BODY_BYTES = 64L * 1024
+
+    /**
+     * A JS handoff: `location.replace("…")`, `location.href = "…"`, `location = "…"`, with or
+     * without a `window.`/`document.` prefix. Only absolute http(s) targets — a relative one
+     * would land on the same interstitial we are trying to leave.
+     */
+    private val jsRedirect = Regex(
+        """location(?:\.href)?\s*=\s*["'](https?:[^"']+)["']""" +
+                """|location\.(?:replace|assign)\(\s*["'](https?:[^"']+)["']""",
+        RegexOption.IGNORE_CASE,
+    )
+
     /** Blocking — call from [kotlinx.coroutines.Dispatchers.IO]. Returns null on any failure. */
     fun resolve(url: String): String? = try {
-        // HEAD avoids downloading the body; some hosts only redirect on GET, so fall back
-        // when HEAD lands us nowhere new.
-        val viaHead = finalUrl(Request.Builder().url(url).head().build())
-        if (viaHead != null && viaHead != url) {
-            viaHead
-        } else {
-            finalUrl(Request.Builder().url(url).build())
+        var current = url
+        for (i in 0 until MAX_HOPS) {
+            current = hop(current) ?: break
         }
+        current
     } catch (_: Exception) {
         null
     }
+
+    /** One step of the chain, or null once [url] stops pointing anywhere else. */
+    private fun hop(url: String): String? {
+        // HEAD avoids downloading the body; some hosts only redirect on GET, and a JS handoff
+        // is invisible without one, so fall back when HEAD lands us nowhere new.
+        val viaHead = finalUrl(Request.Builder().url(url).head().build())
+        if (viaHead != url) return viaHead
+
+        return client.newCall(Request.Builder().url(url).build()).execute().use { response ->
+            val viaGet = response.request.url.toString()
+            if (viaGet != url) viaGet else jsRedirectIn(response.peekBody(MAX_BODY_BYTES).string())
+        }
+    }
+
+    /** The target of a JavaScript handoff in [body], or null if there isn't one. */
+    internal fun jsRedirectIn(body: String): String? = jsRedirect.find(body)
+        ?.groupValues
+        ?.drop(1)
+        ?.firstOrNull { it.isNotEmpty() }
+        // Inline scripts escape the slashes: "https:\/\/example.com".
+        ?.replace("\\/", "/")
+        ?.takeIf { it.toHttpUrlOrNull() != null }
 
     /**
      * The URL the redirect chain ended at, whatever the final status code.
