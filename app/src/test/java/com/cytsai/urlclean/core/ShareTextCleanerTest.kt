@@ -1,15 +1,18 @@
 package com.cytsai.urlclean.core
 
 import com.cytsai.urlclean.data.FilterRule
+import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.atomic.AtomicInteger
 
 class ShareTextCleanerTest {
 
     @Test
-    fun cleanUrls_removesMatchingParamFromPlainUrl() {
+    fun cleanUrls_removesMatchingParamFromPlainUrl() = runBlocking {
         val result = ShareTextCleaner.cleanUrls(
             text = "https://example.com/page?utm_source=newsletter&id=123",
             rules = listOf(FilterRule(domains = null, param = "utm_source")),
@@ -21,7 +24,7 @@ class ShareTextCleanerTest {
     }
 
     @Test
-    fun cleanUrls_removesMatchingParamFromUrlInsideCaption() {
+    fun cleanUrls_removesMatchingParamFromUrlInsideCaption() = runBlocking {
         val result = ShareTextCleaner.cleanUrls(
             text = "Look https://example.com/page?utm_source=newsletter&id=123 for details",
             rules = listOf(FilterRule(domains = null, param = "utm_source")),
@@ -33,7 +36,7 @@ class ShareTextCleanerTest {
     }
 
     @Test
-    fun cleanUrls_reportsNoUrl() {
+    fun cleanUrls_reportsNoUrl() = runBlocking {
         val result = ShareTextCleaner.cleanUrls(
             text = "just a caption",
             rules = listOf(FilterRule(domains = null, param = "utm_source")),
@@ -45,7 +48,7 @@ class ShareTextCleanerTest {
     }
 
     @Test
-    fun cleanUrls_keepsTextWhenRulesAreEmpty() {
+    fun cleanUrls_keepsTextWhenRulesAreEmpty() = runBlocking {
         val text = "https://example.com/page?utm_source=newsletter&id=123"
 
         val result = ShareTextCleaner.cleanUrls(text = text, rules = emptyList())
@@ -56,7 +59,7 @@ class ShareTextCleanerTest {
     }
 
     @Test
-    fun cleanUrls_cleansResolvedUrlWhenRedirected() {
+    fun cleanUrls_cleansResolvedUrlWhenRedirected() = runBlocking {
         val result = ShareTextCleaner.cleanUrls(
             text = "See https://bit.ly/abc for details",
             rules = listOf(FilterRule(domains = null, param = "utm_source")),
@@ -68,7 +71,7 @@ class ShareTextCleanerTest {
     }
 
     @Test
-    fun cleanUrls_keepsCleanedUrlWhenResolverDeclines() {
+    fun cleanUrls_keepsCleanedUrlWhenResolverDeclines() = runBlocking {
         val result = ShareTextCleaner.cleanUrls(
             text = "https://example.com/page?utm_source=x&id=1",
             rules = listOf(FilterRule(domains = null, param = "utm_source")),
@@ -80,7 +83,7 @@ class ShareTextCleanerTest {
     }
 
     @Test
-    fun cleanUrls_resolverSeesAlreadyCleanedUrl() {
+    fun cleanUrls_resolverSeesAlreadyCleanedUrl() = runBlocking {
         var seen: String? = null
         ShareTextCleaner.cleanUrls(
             text = "https://example.com/page?utm_source=x&id=1",
@@ -93,7 +96,7 @@ class ShareTextCleanerTest {
 
     /** A shared caption regularly carries several links; every one of them gets cleaned. */
     @Test
-    fun cleanUrls_cleansEveryUrlInTheText() {
+    fun cleanUrls_cleansEveryUrlInTheText() = runBlocking {
         val result = ShareTextCleaner.cleanUrls(
             text = "https://a.example/1?utm_source=x\nsth https://b23.tv/abc and https://c.example/3",
             rules = listOf(FilterRule(domains = null, param = "utm_source")),
@@ -107,8 +110,43 @@ class ShareTextCleanerTest {
         assertTrue(result.cleaned)
     }
 
+    /**
+     * Two links, each blocking until the other has started. Sequential resolution deadlocks and
+     * the test times out; concurrent resolution passes.
+     */
+    @Test(timeout = 5_000)
+    fun cleanUrls_resolvesUrlsConcurrently() = runBlocking {
+        val bothStarted = CountDownLatch(2)
+
+        val result = ShareTextCleaner.cleanUrls(
+            text = "https://a.example/1 https://b.example/2",
+            rules = emptyList(),
+            resolve = {
+                bothStarted.countDown()
+                bothStarted.await()
+                "$it?resolved"
+            },
+        )
+
+        assertEquals("https://a.example/1?resolved https://b.example/2?resolved", result.text)
+    }
+
+    /** The same link twice in one caption is one network call, not two. */
     @Test
-    fun cleanUrls_keepsUrlWhenNoRuleMatches() {
+    fun cleanUrls_resolvesEachDistinctUrlOnce() = runBlocking {
+        val calls = AtomicInteger()
+
+        ShareTextCleaner.cleanUrls(
+            text = "https://bit.ly/x and again https://bit.ly/x",
+            rules = emptyList(),
+            resolve = { calls.incrementAndGet(); null },
+        )
+
+        assertEquals(1, calls.get())
+    }
+
+    @Test
+    fun cleanUrls_keepsUrlWhenNoRuleMatches() = runBlocking {
         val text = "https://example.com/page?utm_source=newsletter&id=123"
 
         val result = ShareTextCleaner.cleanUrls(

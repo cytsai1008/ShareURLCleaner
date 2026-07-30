@@ -135,7 +135,15 @@ class MainViewModel(
                     }
                 },
                 onFailure = { e ->
-                    val msg = if (e is IOException) "Network error: ${e.message}" else e.message
+                    // Only the prefix is ours to translate; the rest is the exception's own text.
+                    val msg = if (e is IOException) {
+                        getApplication<Application>().getString(
+                            R.string.error_network,
+                            e.message.orEmpty()
+                        )
+                    } else {
+                        e.message
+                    }
                     _updateStatus.update { Pair(false, msg) }
                 },
             )

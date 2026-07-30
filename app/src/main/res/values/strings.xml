@@ -37,4 +37,6 @@
     <string name="btn_cancel">Cancel</string>
     <string name="toast_fetching_url">Fetching URL, please wait</string>
     <string name="toast_fetch_failed">Couldn\'t fetch the real URL — shared as-is</string>
+    <string name="label_share_aggressive">Aggressive Mode</string>
+    <string name="error_network">Network error: %1$s</string>
 </resources>

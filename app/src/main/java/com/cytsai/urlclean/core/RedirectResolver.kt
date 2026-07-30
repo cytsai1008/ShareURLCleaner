@@ -14,6 +14,10 @@ import java.util.concurrent.TimeUnit
  *
  * Interstitials that answer 200 and hand off in JavaScript instead
  * (`document.location.replace("…")`) are followed too, as one more hop.
+ *
+ * The chain is followed to its end rather than to a fixed depth: shorteners routinely point at
+ * other shorteners, so the dive continues while each new URL is still one the caller wants
+ * followed, and stops once a destination neither redirects nor hands off.
  */
 object RedirectResolver {
 
@@ -47,8 +51,11 @@ object RedirectResolver {
             .build()
     }
 
-    /** A JS handoff costs an extra round trip, so cap the chain rather than following it blindly. */
-    private const val MAX_HOPS = 3
+    /**
+     * Safety backstop, not a policy. The chain runs until the URL stops moving; this only bounds
+     * a loop that slips past the visited set — a redirector minting a fresh URL on every hop.
+     */
+    private const val MAX_HOPS = 10
 
     /** Enough for a handoff stub; a real page's redirect script sits in the first bytes too. */
     private const val MAX_BODY_BYTES = 64L * 1024
@@ -64,15 +71,48 @@ object RedirectResolver {
         RegexOption.IGNORE_CASE,
     )
 
-    /** Blocking — call from [kotlinx.coroutines.Dispatchers.IO]. Returns null on any failure. */
-    fun resolve(url: String): String? = try {
-        var current = url
+    /**
+     * Follows the chain to the end. Blocking — call from [kotlinx.coroutines.Dispatchers.IO].
+     *
+     * Keeps diving for as long as the URL it lands on is still one worth following: a shortener
+     * pointing at a shortener pointing at the real page is one share, not three. It stops when the
+     * destination answers without a redirect and without a JS handoff, when [shouldFollow] turns
+     * the new host down, or when the chain doubles back on somewhere it has already been.
+     *
+     * Returns null only when nothing was learned: a hop that fails after the chain already moved
+     * keeps the progress, because a half-followed shortener is still better than the shortener.
+     *
+     * @param shouldFollow gates each URL in turn, not just the first — the domain list applies to
+     * the whole chain, so a hop that leaves it ends the dive.
+     * @param clean applied to every hop, so tracking params picked up along the way never reach
+     * the next request or the shared result.
+     * @param hop one step of the chain. Defaults to the real network call; overridden in tests,
+     * which is the only way to exercise the loop without a live server.
+     */
+    fun resolve(
+        url: String,
+        shouldFollow: (String) -> Boolean = { true },
+        clean: (String) -> String = { it },
+        hop: (String) -> String? = ::hop,
+    ): String? {
+        val start = clean(url)
+        var current = start
+        val visited = mutableSetOf(current)
+        var failed = false
         for (i in 0 until MAX_HOPS) {
-            current = hop(current) ?: break
+            if (!shouldFollow(current)) break
+            val next = try {
+                hop(current)
+            } catch (_: Exception) {
+                failed = true
+                null
+            } ?: break
+            val cleaned = clean(next)
+            // A URL seen before means a cycle; anything further would just go round again.
+            if (!visited.add(cleaned)) break
+            current = cleaned
         }
-        current
-    } catch (_: Exception) {
-        null
+        return if (failed && current == start) null else current
     }
 
     /** One step of the chain, or null once [url] stops pointing anywhere else. */
@@ -88,6 +128,9 @@ object RedirectResolver {
         }
     }
 
+    /** `%` and friends — Meta escapes the percent signs of a nested URL this way. */
+    private val jsUnicodeEscape = Regex("""\\u([0-9a-fA-F]{4})""")
+
     /** The target of a JavaScript handoff in [body], or null if there isn't one. */
     internal fun jsRedirectIn(body: String): String? = jsRedirect.find(body)
         ?.groupValues
@@ -95,6 +138,9 @@ object RedirectResolver {
         ?.firstOrNull { it.isNotEmpty() }
         // Inline scripts escape the slashes: "https:\/\/example.com".
         ?.replace("\\/", "/")
+        ?.let { escaped ->
+            jsUnicodeEscape.replace(escaped) { it.groupValues[1].toInt(16).toChar().toString() }
+        }
         ?.takeIf { it.toHttpUrlOrNull() != null }
 
     /**
@@ -125,19 +171,27 @@ object RedirectResolver {
      * one we follow" — both of which return null to the caller.
      *
      * @param onFetch fires just before a network call, so callers can show progress.
+     * @param clean applied to every URL in the chain — pass the filter rules in here.
      */
     fun forMode(
         mode: AggressiveMode,
         domains: Set<String>,
         onFailure: () -> Unit = {},
         onFetch: () -> Unit = {},
+        clean: (String) -> String = { it },
     ): ((String) -> String?)? {
         if (mode == AggressiveMode.OFF) return null
         if (mode == AggressiveMode.SELECTED && domains.isEmpty()) return null
         return { url ->
             if (appliesTo(mode, domains, url)) {
                 onFetch()
-                resolve(url).also { if (it == null) onFailure() }
+                // The same gate guards every hop: under SELECTED the dive ends the moment it
+                // lands off the list, under ALL it runs to the real destination.
+                resolve(
+                    url = url,
+                    shouldFollow = { appliesTo(mode, domains, it) },
+                    clean = clean,
+                ).also { if (it == null) onFailure() }
             } else {
                 null
             }

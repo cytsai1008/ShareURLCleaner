@@ -42,6 +42,25 @@
             </intent-filter>
         </activity>
 
+        <!--
+            "Aggressive Mode" entry in the share sheet. Same activity, but ShareActivity sees the alias in
+            the intent's component and forces aggressive mode on for every domain, ignoring the
+            settings. Lets the user follow one awkward link without editing the domain list.
+        -->
+        <activity-alias
+            android:name=".ShareAggressiveActivity"
+            android:exported="true"
+            android:label="@string/label_share_aggressive"
+            android:targetActivity=".ShareActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+
+                <data android:mimeType="text/plain" />
+                <data android:mimeType="image/*" />
+            </intent-filter>
+        </activity-alias>
+
         <!-- Suppress WorkManager default auto-init; App implements Configuration.Provider instead -->
         <provider
             android:name="androidx.startup.InitializationProvider"

@@ -37,4 +37,6 @@
     <string name="btn_cancel">取消</string>
     <string name="toast_fetching_url">正在取得連結，請稍候</string>
     <string name="toast_fetch_failed">無法取得真實連結，已按原樣分享</string>
+    <string name="label_share_aggressive">積極模式</string>
+    <string name="error_network">網路錯誤：%1$s</string>
 </resources>
