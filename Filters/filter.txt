@@ -21,3 +21,7 @@ $removeparam=publish_id,domain=shopee.*
 $removeparam=promotionId,domain=shopee.*
 $removeparam=stm_medium,domain=shopee.*
 $removeparam=stm_source,domain=shopee.*
+
+! Instagram — share-sheet tracking token on post/reel links. Applies to every instagram.com
+! subdomain (www., etc.).
+$removeparam=mdxt,domain=instagram.com
