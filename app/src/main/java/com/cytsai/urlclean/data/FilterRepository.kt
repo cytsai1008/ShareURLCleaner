@@ -14,7 +14,25 @@ import java.util.concurrent.TimeUnit
 import kotlin.time.Duration.Companion.milliseconds
 
 /** [domains] is null for a global rule; otherwise the hosts (and their subdomains) it applies to. */
-data class FilterRule(val domains: List<String>?, val param: String)
+data class FilterRule(val domains: List<String>?, val param: String) {
+    /**
+     * Set when [param] is an AdGuard `/regex/flags` value. It is matched against `name=value`,
+     * the way AdGuard does — needed for params whose name is random on every share.
+     */
+    val regex: Regex? = regexOf(param)
+
+    private companion object {
+        fun regexOf(param: String): Regex? {
+            val end = param.lastIndexOf('/')
+            if (!param.startsWith('/') || end < 2) return null
+            val flags = param.substring(end + 1)
+            if (flags.any { it != 'i' }) return null
+            val options = if ('i' in flags) setOf(RegexOption.IGNORE_CASE) else emptySet()
+            // JS-only syntax Java can't compile: no regex, and parseLine drops the rule.
+            return runCatching { Regex(param.substring(1, end), options) }.getOrNull()
+        }
+    }
+}
 
 class FilterRepository(private val context: Context) {
 
@@ -48,6 +66,9 @@ class FilterRepository(private val context: Context) {
         /** Backoff after GitHub actually says no (429, or 403 with a rate-limit body). */
         private const val RATE_LIMITED_BACKOFF_MS = 5_000L
 
+        private val OPTIONS_START = Regex("""(?<!\\)\$(?=[a-z~])""")
+        private val UNESCAPED_COMMA = Regex("""(?<!\\),""")
+
         private fun isGitHub(url: String): Boolean {
             val host = url.toHttpUrlOrNull()?.host?.lowercase() ?: return false
             return host in GITHUB_HOSTS || host.endsWith(".githubusercontent.com")
@@ -69,23 +90,30 @@ class FilterRepository(private val context: Context) {
          *
          * `removeparam` is not always the first option (`$doc,removeparam=ref`), so the option
          * list is split before looking for it rather than string-matching `"\$removeparam="`.
+         *
+         * A regex value (`$removeparam=/^[a-z]{4}=/`) may hold `$` and `,` of its own, escaped
+         * as `\$` and `\,` per AdGuard syntax, so neither splits the rule there.
          */
         internal fun parseLine(line: String): FilterRule? {
             val trimmed = line.trim()
             if (trimmed.isEmpty() || trimmed.startsWith('!') || trimmed.startsWith("@@")) return null
 
-            val optionsStart = trimmed.lastIndexOf('$')
-            if (optionsStart == -1) return null
+            // The options `$` is the last unescaped one followed by an option name — a regex's
+            // own end anchor (`.*$/`) is followed by `/` or `)` instead.
+            val optionsStart = OPTIONS_START.findAll(trimmed).lastOrNull()?.range?.first ?: return null
             val pattern = trimmed.substring(0, optionsStart)
-            val options = trimmed.substring(optionsStart + 1).split(',')
+            val options = trimmed.substring(optionsStart + 1).split(UNESCAPED_COMMA)
 
             val paramOption = options.firstOrNull {
                 it == "removeparam" || it.startsWith("removeparam=")
             } ?: return null
             val param = paramOption.substringAfter('=', "").trim()
-            // Bare `$removeparam` (strip everything), regex params and inverted params are all
-            // out of scope — better to skip than to guess.
-            if (param.isEmpty() || param.startsWith('/') || param.startsWith('~')) return null
+                .replace("\\,", ",")
+                .replace("\\$", "$")
+            // Bare `$removeparam` (strip everything) and inverted params are out of scope —
+            // better to skip than to guess. So is a regex Java can't compile.
+            if (param.isEmpty() || param.startsWith('~')) return null
+            if (param.startsWith('/') && FilterRule(null, param).regex == null) return null
 
             val domainOption = options.firstOrNull { it.startsWith("domain=") }
             if (domainOption != null) {

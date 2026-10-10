@@ -9,20 +9,24 @@ object UrlCleaner {
         val httpUrl = rawUrl.toHttpUrlOrNull() ?: return rawUrl
         val host = httpUrl.host.lowercase()
 
-        val paramsToRemove = buildSet {
-            for (rule in rules) {
-                val scoped = rule.domains
-                if (scoped == null || scoped.any { hostMatches(host, it) }) {
-                    add(rule.param.lowercase())
-                }
+        val paramsToRemove = mutableSetOf<String>()
+        val patternsToRemove = mutableListOf<Regex>()
+        for (rule in rules) {
+            val scoped = rule.domains
+            if (scoped == null || scoped.any { hostMatches(host, it) }) {
+                val regex = rule.regex
+                if (regex != null) patternsToRemove += regex else paramsToRemove += rule.param.lowercase()
             }
         }
 
-        if (paramsToRemove.isEmpty()) return rawUrl
+        if (paramsToRemove.isEmpty() && patternsToRemove.isEmpty()) return rawUrl
 
         val keptParams = (0 until httpUrl.querySize)
             .map { httpUrl.queryParameterName(it) to httpUrl.queryParameterValue(it) }
-            .filter { (name, _) -> name.lowercase() !in paramsToRemove }
+            .filter { (name, value) ->
+                name.lowercase() !in paramsToRemove &&
+                    patternsToRemove.none { it.containsMatchIn("$name=${value.orEmpty()}") }
+            }
 
         if (keptParams.size == httpUrl.querySize) return rawUrl
 

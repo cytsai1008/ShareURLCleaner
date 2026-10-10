@@ -22,6 +22,10 @@ $removeparam=promotionId,domain=shopee.*
 $removeparam=stm_medium,domain=shopee.*
 $removeparam=stm_source,domain=shopee.*
 
-! Instagram — share-sheet tracking token on post/reel links. Applies to every instagram.com
-! subdomain (www., etc.).
-$removeparam=mdxt,domain=instagram.com
+! Instagram — share-sheet tracking token on post/reel links. The name is 4 random lowercase
+! letters on every share (mdxt, psln, ...) and the value is a base64 id, so it can only be
+! matched by shape. Real params such as img_index don't fit it and are kept.
+! The two fixed names are for app versions before regex support, which skip the regex line.
+||instagram.com^$removeparam=mdxt
+||instagram.com^$removeparam=psln
+||instagram.com^$removeparam=/^[a-z]{4}=[A-Za-z0-9+\/ ]{12\,}=*\$/
